@@ -1,0 +1,138 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+  body {
+    padding: 100px;
+    width: 1000px;
+    margin: auto;
+    text-align: left;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    color: #121212;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+</style>
+<title>CS 184 Mesh Editor</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2024</h1>
+<h1 align="middle">Final Project: Simulating Aquatic Ecosystem Dynamics</h1>
+<h2 align="middle">Stefan Pham, An Le, William Yau</h2>
+
+<br><br>
+
+<div>
+
+<h2 align="middle">Overview</h2>
+<p>Our project aims to simulate the patterns of a school of fish and their collective behavior in response to environmental stimuli such as predatory threats. 
+  This project is built off the cloth simulator from assignment 4. The base simulation involves a school of fish swimming around in a small area with no predators. However, when there are predators 
+  present, they will attempt to kill the fish and likewise, the fish themselves will try to avoid the predators as much as they can. We also altered the cloth simulator background to create a sea-like environment and implemented a custom texture shader 
+  for applying a sandfloor to the bottom of the simulation environment. Our approaches to simulating the behavior of a school of fish borrows from a bachelor's thesis written by Eric Vetemaa titled
+  "Simulating the Collective Movement of Fish Schools".
+</p>
+
+<h2 align="middle">Part 1: Social Behavior</h2>
+<p> Implementing the social behavior of a school of fish follows three ideas: alignment, cohesion, and separation. Alignment is used to match the velocity of a fish to its neighbors. Cohesion is used to keep a fish close to its neighbors as well. Separation is used to 
+  prevent collisions between fish. We also use the implicit Euler's Method to implement the movement of the fish, where at each time step, the position of the fish is adjusted by its velocity. Likewise, the velocity is also 
+  adjusted by the fish's acceleration. Moreover, in order to keep the movement of the fish as well as the simulation stable, the speed of the fish has been limited. 
+</p>
+<div align="middle">
+<video width="320" height="240" autoplay>
+  <source src="images/fish_obstacles.mp4" type="video/mp4">
+Your browser does not support the video tag.
+</video>
+<figcaption>Fish moving around obstacles in the simulation.</figcaption>
+</div>
+<h3 align="middle">Part 1.1: Alignment</h3>
+<p>A fish in a school usually moves at a similar velocity as its neighbors. We implement this by altering the velocity vector of a fish based on its neighbors. Our implementation uses a 2D vector called <span style="font-family: monospace;">alignment</span> to control how this behavior is implemented.
+  The first component is the detection radius, which is used to limit the neighboring fish to be within <span style="font-family: monospace;">alignment.x</span> of a fish for alignment calculation. The second component is used to scale the 
+  alignment itself, that is to say how strong the alignment should be. 
+</p>
+<div align="middle">
+<img src="images/alignment.png" align="middle" width="500px" />
+<figcaption>A diagram depicting the alignment vector of a fish relative to its neighbors. Source: ref 1</figcaption>
+</div>
+<h3 align="middle">Part 1.2: Cohesion</h3>
+<p>Naturally, schools of fish usually travel in large groups. As such, we have implemented behavior such that a fish will always swim towards its neighbors by using a cohesion vector, which is the centroid of the fish minus the average centroid of its 
+  neighbors. This is added to the fish's acceleration, which gradaually steers it towards its peers. And similar to how we implemented alignment, we also used a vector called <span style="font-family: monospace;">cohesion</span> 
+  to control the area of neighboring fish considered as well as the magnitude of the cohesion. </p>
+<div align="middle">
+  <img src="images/cohesion.png" align="middle" width="500px" />
+<figcaption>A diagram depicting the cohesion vector of a fish relative to its neighbors. Source: ref 1</figcaption>
+</div>
+<h3 align="middle">Part 1.3: Separation </h3>
+<p>In order to keep fish from colliding with each other, a separation vector is used to keep a fish from making contact with other fish. The separation vector is computed by subtracting the 
+  average centroid of all the neighboring fish from the centroid of the fish itself. This vector is added to the fish's acceleration, which will gradually steer it away from its companions and prevent any collisions. This happens to be the opposite of 
+  how cohesion is implemented, where the direction of the adjustment vector is reversed. And just like the previous two parts, a vector called <span style="font-family: monospace;">separation</span> is used to control the separation mechanism. 
+</p>
+<div align="middle">
+<img src="images/separation.png" align="middle" width="500px" />
+<figcaption>A diagram depicting the separation vector of a fish relative to its neighbors. Source: ref 1</figcaption>
+</div>
+<h2 align="middle">Part 2: Wandering Behavior</h2>
+<p>While a school of fish generally have similar movements, in reality they are not always moving the same direction at the same speed. This is why we have the wandering behavior, where a fish will sometimes deviate from 
+  its path behavior defined by alignment, cohesion, and separation. We implement this through Cubic Hermite Interpolation. Each fish keeps trach of 4 random points. These points are  
+  interpolated to produce a random and smooth acceleration vector that deviates the fish's path. All but the last interpolation point are refreshed every <span style="font-family: monospace;">personalTime</span> simulation runs. 
+</p>
+
+<h2 align="middle">Part 3: Boundary Behavior</h2>
+<p>Because our simulation is built on top of the cloth simulator, it also includes the bounding box from the assignment. We have decided to use this box to restrict the movement of the fish to be contained
+  within it. Our simulator also has a feature that allows uses to change the size of the bounding box. The fish themselves are also programmed to have their positions be constrained to be within the bounding box. 
+</p>
+
+<h2 align="middle">Part 4: Predators</h2>
+<p>Every school of fish has one thing to fear, and its predators. A predator's behavior is similar to a regular fish with some differences. </p>
+<div align="middle">
+  <img src="images/predator_mesh.png" align="middle" width="500px" />
+  <figcaption>A predator in the simulation.</figcaption>
+</div>
+<h3 align="middle">Part 4.1: Fleeing</h3>
+<p>The fleeing behavior is very similar to the separation behavior described previously. However, the main difference here is that the positions of the predators are used instead of the neighboring fish.
+  We also used a scalar value <span style="font-family: monospace;">flee</span> to control the magnitude of the avoidance vector. In other words, <span style="font-family: monospace;">flee</span> controls how scared a fish should be of 
+nearby predators. </p>
+<h3 align="middle">Part 4.2: Hunting</h3>
+<p>A predator's hunting behavior also follows a similar pattern to fish alignment and cohesion. However, the difference here is that a predator will lock onto the nearest fish and speed towards it. It's acceleration is controlled by the <span style="font-family: monospace;">hunt</span> value. 
+  Just like the <span style="font-family: monospace;">flee</span> value, <span style="font-family: monospace;">hunt</span> controls how fast a predator moves towards its prey. When a predator makes contact with a fish, the fish becomes dead and will sink to the bottom of the sea floor. 
+After that, the predator enter's a "rest period" where it will temporarily not attack any fish. </p>
+<div align="middle">
+  <img src="images/predator.png" align="middle" width="500px" />
+  <figcaption>A diagram depicting a predator's acceleration vector after detecting a fish.</figcaption>
+</div>
+<div align="middle">
+  <video width="320" height="240" autoplay>
+    <source src="images/predator_chase.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+  </video>
+  <figcaption>A predator hunting down fish in the simulation.</figcaption>
+  </div>
+<h2 align="middle">Part 5: Fish + Predator Meshes and Textures</h2>
+<p>Both fish and predators are composed of triangle meshes. Each triangle vertex in the mesh is assigned a uv coordinate of (0, 0), (1, 0), or (0, 1). For this project, we have decided to use the shaders
+  that were implemented for the clothsim to apply textures to both the fish and predators. The shaders are also used to create a sand floor in the simulated aquarium. 
+</p>
+<div align="middle">
+  <img src="images/fish.png" align="middle" width="500px" />
+  <figcaption> Simulated fish with textures and Phong shading respectively. Texture source: ref 2 </figcaption>
+</div>
+
+<h2 align="middle">Part 6: Results</h2>
+<p>We were able to get the desired behavior that we were looking for in the school of fish as well as the predator. However, it turns out that our understanding of how fish die was a bit off. We initally thought that they just sank to the floor.
+  However, it turns out that they actually sink for a bit before slowly rising up to the surface due to the build up of gas from decomposing. A video demonstrating our simulation will be linked here later. 
+</p>
+<h2 align="middle">Part 7: References</h2>
+<p>1) <a href=https://dspace.ut.ee/server/api/core/bitstreams/b8967613-8793-4dc3-bfc7-c1bfb98f4aeb/content#:~:text=The%20emergent%20behaviour%20of%20fish,and%20some%20improvements%20are%20proposed>Simulating the Collective Movement of Fish Schools by Eric Vetemaa</a></p>
+<p>2) <a href=https://stock.adobe.com/search/images?k=fish+scales+texture>Adobe Stock Photos</a></p>
+<p>3) <a href=https://vetemaa.github.io/fish-simulation/> Eric Vetemaa's simulation based off his paper </a></p>
+<p>4) <a href=https://vergenet.net/~conrad/boids/pseudocode.html>Boids Psuedocode</a></p>
+<h2 align="middle">Part 8: Contributions</h2>
+<p>William implemented the social behaviors. Stefan implemented the wandering and collision mechanisms. An implemented the predator behvior as well as the fish mesh shading. 
+</p>
+</body>
+</html>
